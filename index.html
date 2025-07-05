@@ -1,6 +1,4 @@
-
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!DOCTYPE html><html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +11,8 @@
     .info div { margin: 8px 0; font-size: 18px; }
     .button { background: #10b981; border: none; padding: 10px 20px; color: white; border-radius: 8px; cursor: pointer; }
     .button:hover { background: #059669; }
+    .error { color: #f87171; margin-top: 10px; font-weight: bold; text-align: center; }
+    .success { color: #4ade80; margin-top: 10px; font-weight: bold; text-align: center; }
   </style>
 </head>
 <body>
@@ -28,28 +28,39 @@
       <input type="text" id="api" style="width:100%; padding: 8px; border-radius: 8px; margin-top: 8px;">
     </div>
     <button class="button" onclick="conectarAPI()">Conectar à Deriv</button>
-  </div>
-
-  <script>
+    <div id="mensagem"></div>
+  </div>  <script>
     function conectarAPI() {
       const token = document.getElementById("api").value;
+      const msgDiv = document.getElementById("mensagem");
+      msgDiv.textContent = "";
+      msgDiv.className = "";
+
       if (!token) {
-        alert("Insira o token da API da Deriv.");
+        msgDiv.textContent = "Insira o token da API da Deriv.";
+        msgDiv.className = "error";
         return;
       }
 
-      // Exemplo básico de conexão WebSocket com Deriv
       const ws = new WebSocket("wss://ws.deriv.com/websockets/v3");
 
       ws.onopen = () => {
-        // Solicitar saldo da conta
         ws.send(JSON.stringify({ authorize: token }));
       };
 
       ws.onmessage = (msg) => {
         const data = JSON.parse(msg.data);
+        console.log(data);
+
+        if (data.error) {
+          msgDiv.textContent = `Erro: ${data.error.message}`;
+          msgDiv.className = "error";
+          return;
+        }
 
         if (data.msg_type === "authorize") {
+          msgDiv.textContent = "Conexão bem-sucedida com a conta da Deriv!";
+          msgDiv.className = "success";
           ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
         } else if (data.msg_type === "balance") {
           document.getElementById("balance").textContent = (data.balance.balance / 10000).toFixed(2);
@@ -58,8 +69,9 @@
 
       ws.onerror = (err) => {
         console.error("Erro na conexão WebSocket:", err);
+        msgDiv.textContent = "Erro na conexão WebSocket.";
+        msgDiv.className = "error";
       };
     }
-  </script>
-</body>
+  </script></body>
 </html>
